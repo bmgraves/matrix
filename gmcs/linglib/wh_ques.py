@@ -8,6 +8,7 @@ from gmcs.constants import MTRX_FR_OPT, MTRX_FRONT, NO_MULTI, \
     IN_SITU, NONE_OBLIG
 from gmcs.utils import get_name, TDLencode, orth_encode
 
+from gmcs.feature_type_use import USED_TYPES
 
 '''
 CONSTANTS
@@ -25,7 +26,9 @@ WH_Q_PHR = ''' wh-ques-phrase := basic-head-filler-phrase & interrogative-clause
 			NON-LOCAL.QUE.LIST < > ],
      HEAD-DTR.SYNSEM.LOCAL.CAT.VAL #val & [ SUBJ < >,
 					                        COMPS < > ],
-     NON-HEAD-DTR.SYNSEM [ NON-LOCAL.QUE.LIST < ref-ind >,
+     NON-HEAD-DTR.SYNSEM [ NON-LOCAL [ QUE.LIST < ref-ind >,
+                                       SLASH.LIST < >,
+                                       REL.LIST < > ],
                            LOCAL.CONT.HOOK.ICONS-KEY focus ] ].'''
 
 
@@ -59,12 +62,20 @@ IN_SITU_PHRASE = '''insitu-int-cl := interrogative-clause & head-only &
           QUE.LIST < ref-ind, ... > ] ] ].'''
 
 EX_DET_PHRASE = '''extracted-det-phrase := basic-extracted-arg-phrase & head-compositional &
-[ SYNSEM [ LOCAL.CAT [ VAL [ SUBJ < >, COMPS < >, SPR < >, SPEC < > ] ],
-           NON-LOCAL.SLASH.APPEND < #slash, [ LIST < #local > ] > ],
-  HEAD-DTR.SYNSEM [ LOCAL.CAT.VAL.SPR <  gap & [ LOCAL #local & local &
-                                                [ CAT.HEAD det,
-                                                  CONT.HOOK #hook ] ] >,
-                   NON-LOCAL.SLASH #slash ],
+  [ SYNSEM [ LOCAL #specloc & local &
+                   [ CAT.VAL [ SUBJ < >,
+                               COMPS < >,
+                               SPR < >,
+                               SPEC < > ] ],
+             NON-LOCAL.SLASH.APPEND < #slash,
+                                      [ LIST < #local > ] > ],
+    HEAD-DTR.SYNSEM [ LOCAL [ CAT [ HEAD noun,
+                                    VAL.SPR < gap &
+                                          [ LOCAL #local & local &
+                                                  [ CAT [ HEAD det,
+                                                          VAL.SPEC.FIRST.LOCAL #specloc ],
+                                                    CONT.HOOK #hook ] ] > ] ],
+                            NON-LOCAL.SLASH #slash ],
     C-CONT [ RELS.LIST < >,
              HCONS.LIST < >,
              ICONS.LIST < >,
@@ -111,10 +122,6 @@ def customize_wh_ques(mylang, ch, rules, roots):
         mylang.add(BASIC_FILLER_SG, section='phrases')
         mylang.add(EX_SUBJ, section='phrases')
         mylang.add('''clause :+ [ SYNSEM.NON-LOCAL.QUE.LIST < > ]. ''')
-    else:
-        if ch.get('person') == '1-2-3':
-            mylang.add(
-                'wh-pronoun-noun-lex := [ SYNSEM.LOCAL.CONT.HOOK.INDEX.PNG.PER 3rd ].')
 
     # Either no fronting at all or single fronting
     if (not ch.get(MTRX_FRONT)) or ch.get(MTRX_FRONT) == SINGLE:
@@ -286,15 +293,8 @@ def customize_wh_ques(mylang, ch, rules, roots):
                                              and not (ch.get('oblig-pied-pip-noun') == ON))):
             mylang.add_literal('; If there is no obligatory pied-piping, determiners '
                                'can be extracted separately:', section='phrasal')
-            mylang.add(EX_DET_PHRASE, section='phrases')
-            if ch.get('case'):
-                mylang.add('''extracted-det-phrase :=
-                [ SYNSEM.LOCAL.CAT.HEAD.CASE #case,
-                HEAD-DTR.SYNSEM.LOCAL.CAT.VAL.SPR.FIRST.LOCAL.CAT.VAL.SPEC.FIRST.LOCAL.CAT.HEAD.CASE #case ].''')
-            if ch.has_png():
-                mylang.add('''extracted-det-phrase :=
-                [ SYNSEM.LOCAL.CONT.HOOK.INDEX.PNG #png,
-                HEAD-DTR.SYNSEM.LOCAL.CAT.VAL.SPR.FIRST.LOCAL.CAT.VAL.SPEC.FIRST.LOCAL.CONT.HOOK.INDEX.PNG #png ].''')
+            if USED_TYPES['qdet']:
+                mylang.add(EX_DET_PHRASE, section='phrases')
             rules.add('ex-det := extracted-det-phrase.')
         # The following would rule out "Which royal house did you see a member of?"
         # if ch.get('pied-pip-adp') == 'on' and not ch.get('oblig-pied-pip-adp') == ON:
